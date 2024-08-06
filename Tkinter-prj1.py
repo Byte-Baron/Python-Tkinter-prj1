@@ -62,7 +62,7 @@ def Delete_student():
     delete_student_page = Toplevel(root)
     delete_student_page.title("Delete Student")
     delete_student_page.geometry("170x180")
-    #delete_student_page.resizable(False, False)
+    delete_student_page.resizable(False, False)
 
     try:
         with open("students.txt", "r") as file:
@@ -163,9 +163,156 @@ def Search_student():
     Button(search_window, text="Exit", command=search_window.destroy).pack(pady = 5)
     
 #Edit
+
+def Edit_student():
+    edit_window = Toplevel(root)
+    edit_window.title("Edit Student")
+    edit_window.geometry("500x185")
+    edit_window.resizable(False, False)
+    listbox = Listbox(edit_window, width=15)
+    listbox.place(x=10,y=10)
+
+    try:
+        with open("students.txt", "r") as file:
+            students = [eval(line.strip()) for line in file.readlines()]
+            for student in students:
+                listbox.insert(END, student["name"])  # Add only the names to the listbox
+    except FileNotFoundError:
+        messagebox.showerror("Error", "No students have been added.")
+        return
+
+    # Entry fields for editing
+    Label(edit_window, text="Edit Student Details").place(x=180,y=5)
+    Label(edit_window, text="Name : ").place(x=150,y=35)
+    name_entry = Entry(edit_window)
+    name_entry.place(x=200,y=38)
+    Label(edit_window, text="Chemistry Grade : ").place(x=150,y=65)
+    chemistry_entry = Entry(edit_window)
+    chemistry_entry.place(x=255,y=68)
+    Label(edit_window, text="Math Grade : ").place(x=150,y=95)
+    math_entry = Entry(edit_window)
+    math_entry.place(x=230,y=98)
+    Label(edit_window, text="Physics Grade : ").place(x=150,y=125)
+    physics_entry = Entry(edit_window)
+    physics_entry.place(x=240,y=128)
+
+    # Load student details into the entry fields
+    def load_student_details():
+        selected_index = listbox.curselection()
+        if selected_index:
+            student = students[selected_index[0]]
+            name_entry.delete(0, END)
+            name_entry.insert(0, student["name"])
+            chemistry_entry.delete(0, END)
+            chemistry_entry.insert(0, student["chemistry_grade"])
+            math_entry.delete(0, END)
+            math_entry.insert(0, student["math_grade"])
+            physics_entry.delete(0, END)
+            physics_entry.insert(0, student["physics_grade"])
+            saved_message.config(text="")  # Clear saved message
+        else:
+            messagebox.showwarning("Select Student", "Please select a student to edit.")
+
+    Button(edit_window, text="Load Details", command=load_student_details).place(x=400,y=40)
+
+    # Save changes and recalculate average
+    def save_changes():
+        selected_index = listbox.curselection()
+        if selected_index:
+            updated_name = name_entry.get()
+            try:
+                updated_chemistry = float(chemistry_entry.get())
+                updated_math = float(math_entry.get())
+                updated_physics = float(physics_entry.get())
+
+                # Recalculate the average grade
+                average_grade = round((updated_chemistry + updated_math + updated_physics) / 3, 2)
+
+                # Update the student details
+                students[selected_index[0]] = {
+                    "name": updated_name,
+                    "chemistry_grade": updated_chemistry,
+                    "math_grade": updated_math,
+                    "physics_grade": updated_physics,
+                    "avg_grade": average_grade
+                }
+
+                # Write changes back to the file
+                with open("students.txt", "w") as file:
+                    for student in students:
+                        file.write(str(student) + "\n")
+
+                saved_message.config(text="Changes Saved")  # Show saved message
+                name_entry.delete(0, END)  # Clear the entry fields
+                chemistry_entry.delete(0, END)
+                math_entry.delete(0, END)
+                physics_entry.delete(0, END)
+            except ValueError:
+                messagebox.showerror("Invalid Input", "Please enter valid numbers for grades.")
+        else:
+            messagebox.showwarning("Select Student", "Please select a student to edit.")
+
+    # Label for showing changes saved message
+    saved_message = Label(edit_window, text="", fg="green")
+    saved_message.place(x=400,y=100)
+    
+    Button(edit_window, text="Save", command=save_changes).place(x=400,y=70)
+    Button(edit_window, text="Exit", command=edit_window.destroy).place(x=445,y=70)
+
+    
 #Sort
+    
+def Sort_students():
+    sort_window = Toplevel(root)
+    sort_window.title("Sort Students")
+    sort_window.geometry("450x350")
+    sort_window.resizable(False, False)
+    sort_selection = StringVar(value="name")  # Default to name sort
+
+    
+    Label(sort_window, text="Sort by:").place(x=100,y=60)
+    Radiobutton(sort_window, text="Alphabetical (A-Z)", variable=sort_selection, value="name").place(x=150,y=0)
+    Radiobutton(sort_window, text="Average Grade", variable=sort_selection, value="avg").place(x=150,y=30)
+    Radiobutton(sort_window, text="Chemistry Grade", variable=sort_selection, value="chemistry").place(x=150,y=60)
+    Radiobutton(sort_window, text="Math Grade", variable=sort_selection, value="math").place(x=150,y=90)
+    Radiobutton(sort_window, text="Physics Grade", variable=sort_selection, value="physics").place(x=150,y=120)
+    
+    listbox = Listbox(sort_window, width=70)
+    listbox.place(x=10,y=150)
+
+    def sort_students():
+        listbox.delete(0, END)
+        
+        try:
+            with open("students.txt", "r") as file:
+                students = [eval(line.strip()) for line in file.readlines()]
+                
+                if sort_selection.get() == "name":
+                    students.sort(key=lambda x: x["name"])
+                elif sort_selection.get() == "avg":
+                    students.sort(key=lambda x: x["avg_grade"], reverse=True)
+                elif sort_selection.get() == "chemistry":
+                    students.sort(key=lambda x: x["chemistry_grade"], reverse=True)
+                elif sort_selection.get() == "math":
+                    students.sort(key=lambda x: x["math_grade"], reverse=True)
+                elif sort_selection.get() == "physics":
+                    students.sort(key=lambda x: x["physics_grade"], reverse=True)
+
+                for student in students:
+                    listbox.insert(END, f"{student['name']} - Avg Grade: {student['avg_grade']:.2f}, "
+                                         f"Chemistry: {student['chemistry_grade']:.2f}, "
+                                         f"Math: {student['math_grade']:.2f}, "
+                                         f"Physics: {student['physics_grade']:.2f}")
+
+        except FileNotFoundError:
+            messagebox.showerror("Error", "No students have been added.")
+
+    Button(sort_window, text="Sort", command=sort_students).place(x=300,y=35)
+    Button(sort_window, text="Exit", command=sort_window.destroy).place(x=300,y=65)
+
 
 #Top STD
+    
 def Top_student():
     try:
         with open("students.txt", "r") as file:
@@ -231,8 +378,8 @@ def show_students():
 Button(root, text="Add", width=9, height=2,command=Add_student).place(x = 20 , y= 20)
 Button(root, text="Delete", width=9, height=2,command=Delete_student).place(x = 120 , y= 20)
 Button(root, text="Search", width=9, height=2,command=Search_student).place(x = 20 , y= 80)
-Button(root, text="Edit", width=9, height=2,command=lambda: (Window := Toplevel(root), Window.title("Edit"), Window.geometry("300x300"))).place(x = 120 , y= 80)
-Button(root, text="Sort", width=9, height=2,command=lambda: (Window := Toplevel(root), Window.title("Sort"), Window.geometry("300x300"))).place(x = 20 , y= 140)
+Button(root, text="Edit", width=9, height=2,command=Edit_student).place(x = 120 , y= 80)
+Button(root, text="Sort", width=9, height=2,command=Sort_students).place(x = 20 , y= 140)
 Button(root, text="Top STD", width=9, height=2,command=Top_student).place(x = 120 , y= 140)
 Button(root, text="Show", width=9, height=5,fg='green',command=show_students).place(x = 20 , y= 200)
 Button(root, text="Exit", width=9, height=5,fg='red',command=root.destroy).place(x = 120 , y= 200)
